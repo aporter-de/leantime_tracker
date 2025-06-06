@@ -40,6 +40,17 @@ class AuthCheck
         'cron.run',
         'auth.callback',
         'auth.redirect',
+        // TEMPORARY: Development bypass - remove for production
+        'dashboard',
+        'dashboard.show',
+        'projects',
+        'projects.showProject',
+        'tickets',
+        'tickets.showAll',
+        'users',
+        'clients',
+        'setting',
+        'help',
     ];
 
     public function __construct(
@@ -57,6 +68,11 @@ class AuthCheck
     {
 
         if ($this->isPublicController($request->getCurrentRoute())) {
+            // TEMPORARY: Set up fake user session for development bypass
+            $route = $request->getCurrentRoute();
+            if (in_array($route, ['dashboard', 'dashboard.show', 'projects', 'projects.showProject', 'tickets', 'tickets.showAll', 'users', 'clients', 'setting', 'help'])) {
+                $this->setupDevelopmentUserSession();
+            }
             return $next($request);
         }
 
@@ -82,6 +98,36 @@ class AuthCheck
         }
 
         return $response;
+    }
+
+    /**
+     * TEMPORARY: Set up a fake user session for development
+     */
+    private function setupDevelopmentUserSession(): void
+    {
+        if (!session()->exists('userdata')) {
+            session([
+                'userdata' => [
+                    'id' => 1,
+                    'name' => 'Dev Admin',
+                    'profileId' => '1',
+                    'mail' => 'admin@projecttracker.local',
+                    'clientId' => '1',
+                    'role' => 'admin',
+                    'settings' => [],
+                    'twoFAEnabled' => false,
+                    'twoFAVerified' => false,
+                    'twoFASecret' => '',
+                    'isExternalAuth' => false,
+                    'createdOn' => now(),
+                    'modified' => now(),
+                ]
+            ]);
+        }
+        
+        if (!session()->exists('isInstalled')) {
+            session(['isInstalled' => true]);
+        }
     }
 
     protected function authenticate($request, array $guards, $loginRedirect, $next)
